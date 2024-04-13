@@ -1,2 +1,7 @@
+<<<<<<< HEAD
 .git
 .venv
+=======
+
+.venv/
+>>>>>>> 76b0ac75ad05f0cfcef4a6fbaac8889e7815d71a
