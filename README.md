@@ -1,4 +1,4 @@
-## Curl Data Inspector (Markdown)
+## Curl Data Inspector
 
 ### Descrição
 
