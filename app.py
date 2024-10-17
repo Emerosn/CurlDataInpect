@@ -13,29 +13,40 @@ class CurlDataFetcher:
 
     def fetch_curl_data(self):
         try:
-            # Load curl format from configuration file
-            with open("./curl_inform.json", "r") as file:
-                curl_format = json.load(file)
-            
-            # Convert the dictionary to a formatted JSON string
-            curl_format_str = json.dumps(curl_format)
+            # Definindo o formato diretamente no código
+            curl_format_str = '''
+                {
+                    "time_namelookup": "%{time_namelookup}",
+                    "time_connect": "%{time_connect}",
+                    "time_appconnect": "%{time_appconnect}",
+                    "time_pretransfer": "%{time_pretransfer}",
+                    "time_redirect": "%{time_redirect}",
+                    "time_starttransfer": "%{time_starttransfer}",
+                    "time_total": "%{time_total}",
+                    "speed_download": "%{speed_download}",
+                    "speed_upload": "%{speed_upload}",
+                    "remote_ip": "%{remote_ip}",
+                    "remote_port": "%{remote_port}",
+                    "local_ip": "%{local_ip}",
+                    "local_port": "%{local_port}",
+                    "size_download": "%{size_download}",
+                    "size_upload": "%{size_upload}",
+                    "http_code": "%{http_code}",
+                    "content_type": "%{content_type}",
+                    "url_effective": "%{url_effective}"
+                }
+            '''
 
-            # Execute the curl command and format the output as JSON
+            # Executa o comando curl e formata a saída como JSON
             curl_output = subprocess.check_output(
                 ["curl", self.url, "-w", curl_format_str, "-o", "/dev/null", "-s"], 
                 stderr=subprocess.PIPE, 
                 universal_newlines=True
             )
 
-            # Convert curl output to a Python dictionary
+            # Converte a saída do curl para um dicionário Python
             self.result = json.loads(curl_output)
 
-        except FileNotFoundError:
-            print("Error: Configuration file 'curl_inform.json' not found.")
-            sys.exit(1)
-        except json.JSONDecodeError as e:
-            print(f"Error: Invalid JSON format in 'curl_inform.json': {e}")
-            sys.exit(1)
         except subprocess.CalledProcessError as e:
             self.result = {"error": "Failed to execute curl", "stderr": e.stderr}
         except Exception as e:
@@ -48,10 +59,10 @@ class CurlDataFetcher:
             with socket.create_connection((hostname, 443)) as sock:
                 with context.wrap_socket(sock, server_hostname=hostname) as ssock:
                     cert = ssock.getpeercert()
-                    # Extract expiration date
+                    # Extrair a data de expiração
                     expiry_date_str = cert['notAfter']
                     expiry_date = datetime.datetime.strptime(expiry_date_str, '%b %d %H:%M:%S %Y %Z')
-                    # Calculate remaining days
+                    # Calcular dias restantes
                     days_left = (expiry_date - datetime.datetime.utcnow()).days
                     self.result['expire_date'] = expiry_date_str
                     self.result['days_until_expiration'] = days_left
@@ -80,7 +91,7 @@ def main():
     output_format = "json"
     url = None
 
-    # Handle parameters
+    # Manipula parâmetros
     for arg in sys.argv[1:]:
         if arg in ["--table", "--lld"]:
             output_format = arg[2:]
@@ -96,16 +107,16 @@ def main():
     fetcher.fetch_ssl_expiration()
     result = fetcher.get_result()
 
-    # Display the result according to the chosen format
+    # Exibe o resultado no formato escolhido
     if output_format == "table":
-        # Display output in table format with sections based on "Information" categories
+        # Exibe a saída em formato de tabela com seções baseadas nas categorias de informações
         sections = {
             "Timing Information": ["time_namelookup", "time_connect", "time_appconnect", "time_pretransfer", "time_redirect", "time_starttransfer", "time_total"],
             "Transfer Speed Information": ["speed_download", "speed_upload"],
             "IP and Port Information": ["remote_ip", "remote_port", "local_ip", "local_port"],
             "Data Size Information": ["size_download", "size_upload"],
             "SSL Expiration Information": ["expire_date", "days_until_expiration"],
-            "Other Information": ["num_connects", "redirect_url", "ssl_verify_result", "http_code", "content_type", "errormsg", "exitcode", "filename_effective", "ftp_entry_path", "http_connect", "http_version", "method", "num_headers", "num_redirects", "proxy_ssl_verify_result", "referer", "response_code", "scheme", "size_header", "size_request", "stderr", "data", "url", "effective_url", "domain"]
+            "Other Information": ["http_code", "content_type", "url_effective"]
         }
 
         for section_name, section_keys in sections.items():
@@ -113,10 +124,10 @@ def main():
             print("\n{}:".format(section_name))
             print(tabulate(section_data, headers=["Key", "Value"], tablefmt="grid"))
     elif output_format == "lld":
-        # Display output in LLD format
+        # Exibe a saída em formato LLD
         print(json.dumps({"data": [result]}))
     else:
-        # Display output in default JSON format
+        # Exibe a saída no formato JSON padrão
         print(json.dumps(result, indent=2))
 
 if __name__ == "__main__":
